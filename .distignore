@@ -11,3 +11,8 @@
 /README.md
 /LICENSE
 /.gitignore
+
+# Agent development documentation and local browser-test dependencies.
+/docs
+/node_modules
+/test-results

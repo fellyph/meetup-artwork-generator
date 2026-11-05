@@ -204,14 +204,14 @@
 		return state[ field ];
 	}
 
-	function syncFields() {
+	function syncFields( force = false ) {
 		root.querySelectorAll( '[data-field]' ).forEach( ( el ) => {
 			const value = fieldValue( el.dataset.field );
 			if ( el.type === 'radio' ) {
 				el.checked = String( value ) === el.value;
 			} else if ( el.type === 'checkbox' ) {
 				el.checked = !! value;
-			} else if ( el !== document.activeElement && el.value !== String( value ?? '' ) ) {
+			} else if ( ( force || el !== document.activeElement ) && el.value !== String( value ?? '' ) ) {
 				el.value = value ?? '';
 			}
 		} );
@@ -242,8 +242,8 @@
 	} );
 
 	// Show the full community label once the city field loses focus.
-	$( '#wpbr-city' ).addEventListener( 'change', syncFields );
-	$( '#wpbr-city' ).addEventListener( 'blur', syncFields );
+	$( '#wpbr-city' ).addEventListener( 'change', () => syncFields() );
+	$( '#wpbr-city' ).addEventListener( 'blur', () => syncFields() );
 
 	/* ------------------------------------------------------------------ */
 	/* Images                                                              */
@@ -543,23 +543,35 @@
 	let frame = null;
 	let renderToken = 0;
 
-	function changed() {
-		save();
-		renderCopy();
-		if ( frame ) {
-			return;
-		}
-		frame = window.setTimeout( async () => {
-			frame = null;
-			const token = ++renderToken;
-			await fontsReady;
-			const data = await renderData();
-			if ( token !== renderToken ) {
-				return;
-			}
+	let previewPromise = null;
+	function refreshPreview() {
+		clearTimeout( frame );
+		frame = null;
+		if ( previewPromise ) { return previewPromise; }
+		previewPromise = ( async () => {
+			let token;
+			let data;
+			do {
+				token = renderToken;
+				await fontsReady;
+				data = await renderData();
+			} while ( token !== renderToken );
 			const format = currentFormat();
 			const result = Renderer.render( canvas, data, format );
 			sizeLabel.textContent = `${ format.label } · ${ format.width } × ${ format.height } px` + ( result.overflow ? ' — ' + t( 'tooLong' ) : '' );
+		} )().finally( () => { previewPromise = null; } );
+		return previewPromise;
+	}
+
+	function changed() {
+		save();
+		renderCopy();
+		++renderToken;
+		if ( frame ) {
+			return;
+		}
+		frame = window.setTimeout( () => {
+			refreshPreview().catch( () => { /* A later edit can retry rendering. */ } );
 		}, 16 );
 	}
 
@@ -567,14 +579,17 @@
 		return normalize( text ).replace( /[^a-z0-9]+/g, '-' ).replace( /^-|-$/g, '' );
 	}
 
-	async function download( format ) {
+	async function download( format, signal ) {
 		await fontsReady;
 		const data = await renderData();
 		const out = document.createElement( 'canvas' );
 		Renderer.render( out, data, format );
 		const blob = await new Promise( ( resolve ) => out.toBlob( resolve, 'image/png' ) );
 		if ( ! blob ) {
-			return;
+			throw new Error( 'PNG generation failed.' );
+		}
+		if ( signal && signal.aborted ) {
+			throw new Error( 'Download cancelled.' );
 		}
 		const name = [ 'meetup-wp', slug( cityName() ), state.date, format.id, state.theme === 'dark' ? 'dark' : '' ].filter( Boolean ).join( '-' );
 		const link = document.createElement( 'a' );
@@ -747,4 +762,60 @@
 	buildSelects();
 	buildFormats();
 	init();
+
+	if ( window.WPBRArtesWebMCP ) {
+		const refreshAgentView = async () => {
+			applyAuto();
+			syncFields( true );
+			syncFormats();
+			changed();
+			try {
+				await refreshPreview();
+			} catch ( cause ) {
+				const error = new Error( 'Draft updated, but preview rendering failed. Review the form and reload before retrying.' );
+				error.code = 'PREVIEW_FAILED';
+				throw error;
+			}
+		};
+		window.WPBRArtesWebMCP.register( {
+			config,
+			getState: () => state,
+			cityName,
+			updateEvent: async ( fields ) => {
+				if ( fields.city !== undefined ) { chooseCity( fields.city ); }
+				for ( const [ key, value ] of Object.entries( fields ) ) {
+					if ( key === 'city' ) { continue; }
+					state[ key ] = value;
+					if ( AUTO[ key ] ) { state.auto[ key ] = value.trim() === ''; }
+				}
+				await refreshAgentView();
+			},
+			updateItems: async ( items ) => {
+				state.talks = items.talks;
+				state.sponsors = items.sponsors;
+				renderList( 'talks' );
+				renderList( 'sponsors' );
+				await refreshAgentView();
+			},
+			configure: async ( fields ) => {
+				Object.assign( state, fields );
+				await refreshAgentView();
+			},
+			download: ( id, signal ) => {
+				const format = config.formats.find( ( item ) => item.id === id );
+				if ( ! format ) { throw new Error( 'Format unavailable.' ); }
+				return download( format, signal );
+			},
+			announcements: () => Copy ? Copy.build( copyInfo(), t, LOCALE ) : [],
+			focusImage: async ( target, index ) => {
+				const button = target === 'watermark' ? watermarkButton : lists[ target === 'talk' ? 'talks' : 'sponsors' ].root.children[ index - 1 ].querySelector( '.wpbr-photo__button' );
+				if ( target === 'watermark' ) {
+					state.landmark = CUSTOM;
+					await refreshAgentView();
+				}
+				button.focus();
+				button.scrollIntoView( { block: 'center' } );
+			},
+		} );
+	}
 } )();

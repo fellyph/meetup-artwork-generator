@@ -1,0 +1,291 @@
+[
+  {
+    "name": "Update only supplied event facts",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Change the meetup title to Building with WordPress and date to 2026-11-12. Preserve the other details."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "update_event",
+        "arguments": {
+          "title": "Building with WordPress",
+          "date": "2026-11-12"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Relative date stays user phrased",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Set the meetup date to tomorrow."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "update_event",
+        "arguments": {
+          "date": "tomorrow"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Batch additions",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Add a talk titled Blocks by Ana and a sponsor named Example Agency. Keep the existing talks and sponsors."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "edit_artwork_items",
+        "arguments": {
+          "changes": [
+            {
+              "kind": "talk",
+              "action": "add",
+              "title": "Blocks",
+              "speaker": "Ana"
+            },
+            {
+              "kind": "sponsor",
+              "action": "add",
+              "name": "Example Agency"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Adjust appearance",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Switch the artwork theme to dark and title style to bold."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "configure_artwork",
+        "arguments": {
+          "theme": "dark",
+          "titleWeight": "700"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Download all formats",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Download all artwork formats."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "download_artwork",
+        "arguments": {
+          "all": true
+        }
+      }
+    ]
+  },
+  {
+    "name": "Read announcement",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Read the WhatsApp announcement and tell me what event facts are missing."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "read_announcement",
+        "arguments": {
+          "network": "whatsapp"
+        },
+        "mockOutput": {
+          "network": "whatsapp",
+          "text": "Meetup draft",
+          "missing_fields": [
+            "date",
+            "time"
+          ],
+          "total_length": 12,
+          "next_offset": null
+        }
+      }
+    ]
+  },
+  {
+    "name": "Local image handoff",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "I want to upload a custom watermark from my computer."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "initiate_image_selection",
+        "arguments": {
+          "target": "watermark"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Read before changing speaker",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Rename the first talk speaker to Bruno. Check the current speaker first."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "read_artwork",
+        "arguments": {
+          "section": "talks"
+        },
+        "mockOutput": {
+          "page": 1,
+          "page_size": 1,
+          "total_count": 1,
+          "total_pages": 1,
+          "items": [
+            {
+              "index": 1,
+              "speaker": "Ana",
+              "title": "Blocks",
+              "has_image": true
+            }
+          ]
+        }
+      },
+      {
+        "functionName": "edit_artwork_items",
+        "arguments": {
+          "changes": [
+            {
+              "kind": "talk",
+              "action": "update",
+              "index": 1,
+              "expected_name": "Ana",
+              "speaker": "Bruno"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Recover stale entry before editing",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Rename the first speaker to Bruno."
+      },
+      {
+        "role": "model",
+        "type": "functioncall",
+        "name": "edit_artwork_items",
+        "arguments": {
+          "changes": [
+            {
+              "kind": "talk",
+              "action": "update",
+              "index": 1,
+              "expected_name": "Ana",
+              "speaker": "Bruno"
+            }
+          ]
+        }
+      },
+      {
+        "role": "user",
+        "type": "functionresponse",
+        "name": "edit_artwork_items",
+        "response": {
+          "result": {
+            "error": "Entry changed or is missing. Read the current list and use its index and exact name.",
+            "code": "INVALID_INPUT",
+            "retryable": false
+          }
+        }
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "read_artwork",
+        "arguments": {
+          "section": "talks"
+        },
+        "mockOutput": {
+          "page": 1,
+          "page_size": 1,
+          "total_count": 1,
+          "total_pages": 1,
+          "items": [
+            {
+              "index": 1,
+              "speaker": "Carla",
+              "title": "Blocks",
+              "has_image": false
+            }
+          ]
+        }
+      },
+      {
+        "functionName": "edit_artwork_items",
+        "arguments": {
+          "changes": [
+            {
+              "kind": "talk",
+              "action": "update",
+              "index": 1,
+              "expected_name": "Carla",
+              "speaker": "Bruno"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Continue long announcement",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Continue reading the WhatsApp draft at next_offset 900 from the previous response."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "read_announcement",
+        "arguments": {
+          "network": "whatsapp",
+          "offset": 900
+        }
+      }
+    ]
+  }
+]

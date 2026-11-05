@@ -42,3 +42,10 @@ Gerador de artes e textos de divulgação para meetups das comunidades WordPress
 ## License
 
 GPL-2.0-or-later. Fonts: Inter and IBM Plex Mono, SIL Open Font License 1.1 (see `assets/fonts/`).
+
+## Browser agent support
+
+WebMCP-enabled browsers can inspect and update event details, manage talks and
+sponsors, adjust artwork, request PNG downloads and read announcement drafts.
+Local image selection stays with the user. Browsers without WebMCP keep the same
+manual controls. See [tools, boundaries and verification](docs/webmcp/README.md).

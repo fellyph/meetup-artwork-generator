@@ -140,7 +140,8 @@ function wpbr_artes_enqueue_assets() {
 
 	wp_enqueue_script( 'wpbr-artes-renderer', WPBR_ARTES_URL . 'assets/js/renderer.js', array(), WPBR_ARTES_VERSION, true );
 	wp_enqueue_script( 'wpbr-artes-copy', WPBR_ARTES_URL . 'assets/js/copy.js', array(), WPBR_ARTES_VERSION, true );
-	wp_enqueue_script( 'wpbr-artes-app', WPBR_ARTES_URL . 'assets/js/app.js', array( 'wpbr-artes-renderer', 'wpbr-artes-copy' ), WPBR_ARTES_VERSION, true );
+	wp_enqueue_script( 'wpbr-artes-webmcp', WPBR_ARTES_URL . 'assets/js/webmcp.js', array(), WPBR_ARTES_VERSION, true );
+	wp_enqueue_script( 'wpbr-artes-app', WPBR_ARTES_URL . 'assets/js/app.js', array( 'wpbr-artes-renderer', 'wpbr-artes-copy', 'wpbr-artes-webmcp' ), WPBR_ARTES_VERSION, true );
 
 	wp_add_inline_script(
 		'wpbr-artes-renderer',

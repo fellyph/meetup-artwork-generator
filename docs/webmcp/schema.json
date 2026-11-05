@@ -1,0 +1,369 @@
+{
+  "tools": [
+    {
+      "name": "list_artwork_options",
+      "description": "Lists available artwork choices. Use when resolving a city, format or landmark before editing.",
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cities",
+              "formats",
+              "landmarks"
+            ],
+            "description": "Catalog to browse."
+          },
+          "query": {
+            "type": "string",
+            "description": "Optional name filter.",
+            "maxLength": 200
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Page number, starting at one."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Continue an oversized catalog entry using next_offset."
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_artwork",
+      "description": "Reads the current draft without changing it. Use before revising existing details or identifying a talk or sponsor.",
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "event",
+              "appearance",
+              "talks",
+              "sponsors"
+            ],
+            "description": "Draft section to inspect."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Page number, starting at one."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Continue an oversized item using next_offset; concatenate text and parse the JSON."
+          }
+        },
+        "required": [
+          "section"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "update_event",
+      "description": "Updates supplied event details and refreshes the preview, preserving other fields. Use when the user supplies or corrects meetup facts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City name as supplied by the user.",
+            "maxLength": 100
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "presencial",
+              "online"
+            ],
+            "description": "In-person or online event."
+          },
+          "edition": {
+            "type": "string",
+            "description": "Edition number or label.",
+            "maxLength": 6
+          },
+          "header": {
+            "type": "string",
+            "description": "Custom community heading; empty restores automatic text.",
+            "maxLength": 50
+          },
+          "subheader": {
+            "type": "string",
+            "description": "Custom second heading; empty restores automatic text.",
+            "maxLength": 40
+          },
+          "date": {
+            "type": "string",
+            "description": "Exact YYYY-MM-DD or user phrasing; supported relative dates are resolved locally.",
+            "maxLength": 80
+          },
+          "time": {
+            "type": "string",
+            "description": "Local time HH:MM; ask for an exact time if ambiguous.",
+            "maxLength": 5
+          },
+          "tz": {
+            "type": "string",
+            "description": "Displayed timezone abbreviation; no time conversion.",
+            "maxLength": 6
+          },
+          "title": {
+            "type": "string",
+            "description": "Meetup theme/title.",
+            "maxLength": 90
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional event description.",
+            "maxLength": 200
+          },
+          "highlight": {
+            "type": "string",
+            "description": "Footer highlight.",
+            "maxLength": 60
+          },
+          "venue": {
+            "type": "string",
+            "description": "Venue and address.",
+            "maxLength": 140
+          },
+          "showVenue": {
+            "type": "boolean",
+            "description": "Show venue on the artwork."
+          },
+          "link": {
+            "type": "string",
+            "description": "Registration URL using https or http, or empty to clear.",
+            "maxLength": 1000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "edit_artwork_items",
+      "description": "Edits talks and sponsors in a single validated batch while retaining images. Use to add, revise, reorder or remove entries the user specifies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "changes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "talk",
+                    "sponsor"
+                  ],
+                  "description": "Entry type."
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "add",
+                    "update",
+                    "remove",
+                    "move"
+                  ],
+                  "description": "Requested edit."
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Current one-based position; required except for add."
+                },
+                "expected_name": {
+                  "type": "string",
+                  "description": "Current speaker or sponsor name from read_artwork; required except for add.",
+                  "maxLength": 60
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Destination one-based position for move."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Talk title.",
+                  "maxLength": 80
+                },
+                "speaker": {
+                  "type": "string",
+                  "description": "Speaker name.",
+                  "maxLength": 60
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Sponsor name.",
+                  "maxLength": 40
+                }
+              },
+              "required": [
+                "kind",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "changes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "configure_artwork",
+      "description": "Changes artwork styling and refreshes the preview. Use when adjusting the layout or visual treatment of an existing draft.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ],
+            "description": "Artwork color theme."
+          },
+          "format": {
+            "type": "string",
+            "description": "Format name or ID from list_artwork_options.",
+            "maxLength": 100
+          },
+          "landmark": {
+            "type": "string",
+            "description": "Landmark name or ID; none hides it, custom uses an already uploaded image.",
+            "maxLength": 100
+          },
+          "titleWeight": {
+            "type": "string",
+            "enum": [
+              "400",
+              "700"
+            ],
+            "description": "Regular or bold title."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "download_artwork",
+      "description": "Requests PNG downloads from the current draft. Use only when the user asks to download artwork; the browser may require permission for multiple files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "all": {
+            "type": "boolean",
+            "description": "Download all available formats; defaults to the selected format."
+          },
+          "formats": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "description": "Format name or ID from the catalog.",
+              "maxLength": 100
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_announcement",
+      "description": "Reads exact generated announcement text and missing event facts. Use to review a draft for sharing, continuing through long text as needed.",
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "network": {
+            "type": "string",
+            "enum": [
+              "meetup",
+              "facebook",
+              "instagram",
+              "linkedin",
+              "x",
+              "whatsapp"
+            ],
+            "description": "Target social network."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Character offset returned as next_offset; starts at zero."
+          }
+        },
+        "required": [
+          "network"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "initiate_image_selection",
+      "description": "Focuses the existing image upload control for the user to choose a local file. Use when a speaker photo, sponsor logo or custom watermark is requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "talk",
+              "sponsor",
+              "watermark"
+            ],
+            "description": "Image destination."
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current one-based entry position, except for watermark."
+          },
+          "expected_name": {
+            "type": "string",
+            "description": "Current speaker or sponsor name; required except for watermark.",
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
